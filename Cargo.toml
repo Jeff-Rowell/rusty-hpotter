@@ -1,0 +1,16 @@
+[package]
+name = "hpotter"
+version = "0.0.1"
+edition = "2024"
+
+[dependencies]
+clap = { version = "4.6.0", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+serde_norway = "0.9"
+bollard ="0.20"
+anyhow = "1"
+futures-util = "0.3"
+
+[dev-dependencies]
+testcontainers = "0.27"
