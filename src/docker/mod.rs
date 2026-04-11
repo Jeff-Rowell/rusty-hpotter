@@ -26,11 +26,12 @@ use bollard::plugin::{
 };
 use bollard::query_parameters::{
     CreateContainerOptions, CreateImageOptions, ListImagesOptionsBuilder, ListVolumesOptions,
-    RemoveVolumeOptions,
+    LogsOptionsBuilder, RemoveVolumeOptions,
 };
 use bollard::query_parameters::{ListContainersOptionsBuilder, ListNetworksOptionsBuilder};
 use futures_util::StreamExt;
 use futures_util::future::join_all;
+use futures_util::stream::TryStreamExt;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -821,6 +822,47 @@ pub async fn delete_volume(docker_client: &Docker, volume_name: &str) -> Result<
             .await?;
     }
     Ok(())
+}
+
+/// Returns the logs for the container associated with `id` using the given
+/// docker server client.
+///
+/// # Arguments
+///
+/// * `docker_client`: the docker server client
+/// * `id`: the id or name of the container to get logs for
+///
+/// # Examples
+///
+/// ```ignore
+/// use std::sync::Arc;
+/// use hpotter::docker;
+///
+/// async fn example() -> anyhow::Result<()> {
+///     let docker_client = Arc::new(docker::connect()?);
+///     let container_id = "example-container-id-or-name";
+///
+///     let container_logs= docker::get_container_logs(&docker_client, &container_id)
+///         .await?;
+///     assert_ne(container_logs, "");
+///
+///     Ok(())
+/// }
+/// ```
+pub async fn get_container_logs(docker_client: &Docker, id: &str) -> Result<String> {
+    let options = LogsOptionsBuilder::default()
+        .stdout(true)
+        .stderr(true)
+        .tail("all")
+        .build();
+
+    let logs: Vec<String> = docker_client
+        .logs(id, Some(options))
+        .map_ok(|log| log.to_string())
+        .try_collect()
+        .await?;
+
+    Ok(logs.join(""))
 }
 
 #[cfg(test)]

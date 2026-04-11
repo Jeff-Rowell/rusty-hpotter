@@ -1,12 +1,12 @@
 mod fixtures;
 use bollard::Docker;
-use fixtures::{TEST_BAD_CONFIG, TEST_GOOD_CONFIG};
+use fixtures::{EXPECTED_CONTAINER_LOGS, TEST_BAD_CONFIG, TEST_GOOD_CONFIG};
 use hpotter::config::Config;
 use hpotter::docker::{
     HpotterContainerConfig, create_container, create_network, create_volume, delete_container,
     delete_network, delete_volume, download_images, ensure_db_container, ensure_db_network,
-    ensure_db_volume, get_container_id, get_network_id, get_network_names, image_is_available,
-    pull_image, start_container,
+    ensure_db_volume, get_container_id, get_container_logs, get_network_id, get_network_names,
+    image_is_available, pull_image, start_container,
 };
 use std::sync::Arc;
 use testcontainers::GenericImage;
@@ -393,5 +393,41 @@ async fn test_ensure_db_volume_exists() -> () {
     assert!(result.is_ok());
 
     let del_result = delete_volume(&docker_client, &db_volume_name).await;
+    assert!(del_result.is_ok());
+}
+
+#[tokio::test]
+async fn test_get_container_logs_succeeds() -> () {
+    let docker_client = Arc::new(Docker::connect_with_socket_defaults().unwrap());
+    let container_name = String::from("test_get_container_logs_succeeds");
+    let _ = delete_container(&docker_client, &container_name).await;
+
+    let container_conf = HpotterContainerConfig {
+        name: container_name,
+        image: String::from("hello-world:latest"),
+        host_port: 54321,
+        container_port: 54321,
+        env: None,
+        network_id: None,
+        cmd: Some(vec![String::from("/hello")]),
+        volumes: None,
+    };
+
+    let container_id = create_container(&docker_client, &container_conf)
+        .await
+        .unwrap();
+    assert_ne!(container_id, "");
+
+    let result = start_container(&docker_client, &container_id).await;
+    assert!(result.is_ok());
+
+    let container_logs = get_container_logs(&docker_client, &container_id)
+        .await
+        .unwrap();
+
+    println!("{container_logs:#?}");
+    assert_eq!(container_logs, EXPECTED_CONTAINER_LOGS);
+
+    let del_result = delete_container(&docker_client, &container_id).await;
     assert!(del_result.is_ok());
 }
