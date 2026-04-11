@@ -25,8 +25,8 @@ use bollard::plugin::{
     ContainerCreateBody, EndpointSettings, HostConfig, NetworkCreateRequest, NetworkingConfig,
 };
 use bollard::query_parameters::{
-    CreateContainerOptions, CreateImageOptions, ListImagesOptionsBuilder, ListVolumesOptions,
-    LogsOptionsBuilder, RemoveVolumeOptions,
+    CreateContainerOptions, CreateImageOptions, InspectContainerOptions, ListImagesOptionsBuilder,
+    ListVolumesOptions, LogsOptionsBuilder, RemoveVolumeOptions,
 };
 use bollard::query_parameters::{ListContainersOptionsBuilder, ListNetworksOptionsBuilder};
 use futures_util::StreamExt;
@@ -842,7 +842,7 @@ pub async fn delete_volume(docker_client: &Docker, volume_name: &str) -> Result<
 ///     let docker_client = Arc::new(docker::connect()?);
 ///     let container_id = "example-container-id-or-name";
 ///
-///     let container_logs= docker::get_container_logs(&docker_client, &container_id)
+///     let container_logs = docker::get_container_logs(&docker_client, &container_id)
 ///         .await?;
 ///     assert_ne(container_logs, "");
 ///
@@ -863,6 +863,50 @@ pub async fn get_container_logs(docker_client: &Docker, id: &str) -> Result<Stri
         .await?;
 
     Ok(logs.join(""))
+}
+
+/// Returns the IP addresss for the container associated with `id` using the
+/// given docker server client.
+///
+/// # Arguments
+///
+/// * `docker_client`: the docker server client
+/// * `id`: the id or name of the container to get logs for
+///
+/// # Examples
+///
+/// ```ignore
+/// use std::sync::Arc;
+/// use hpotter::docker;
+///
+/// async fn example() -> anyhow::Result<()> {
+///     let docker_client = Arc::new(docker::connect()?);
+///     let container_id = "example-container-id-or-name";
+///
+///     let container_ip = docker::get_container_ip(&docker_client, &container_id)
+///         .await?;
+///
+///     assert_ne(container_ip, "");
+///
+///     Ok(())
+/// }
+/// ```
+pub async fn get_container_ip(docker: &Docker, id: &str) -> Result<String> {
+    let options = InspectContainerOptions::default();
+    let inspect_response = docker.inspect_container(id, Some(options)).await?;
+
+    let ip = inspect_response
+        .network_settings
+        .and_then(|settings| settings.networks)
+        .and_then(|networks| {
+            networks
+                .into_iter()
+                .next()
+                .and_then(|(_, network)| network.ip_address)
+        })
+        .unwrap_or_default();
+
+    Ok(ip)
 }
 
 #[cfg(test)]

@@ -5,8 +5,8 @@ use hpotter::config::Config;
 use hpotter::docker::{
     HpotterContainerConfig, create_container, create_network, create_volume, delete_container,
     delete_network, delete_volume, download_images, ensure_db_container, ensure_db_network,
-    ensure_db_volume, get_container_id, get_container_logs, get_network_id, get_network_names,
-    image_is_available, pull_image, start_container,
+    ensure_db_volume, get_container_id, get_container_ip, get_container_logs, get_network_id,
+    get_network_names, image_is_available, pull_image, start_container,
 };
 use std::sync::Arc;
 use testcontainers::GenericImage;
@@ -425,8 +425,45 @@ async fn test_get_container_logs_succeeds() -> () {
         .await
         .unwrap();
 
-    println!("{container_logs:#?}");
     assert_eq!(container_logs, EXPECTED_CONTAINER_LOGS);
+
+    let del_result = delete_container(&docker_client, &container_id).await;
+    assert!(del_result.is_ok());
+}
+
+#[tokio::test]
+async fn test_get_container_ip_succeeds() -> () {
+    let docker_client = Arc::new(Docker::connect_with_socket_defaults().unwrap());
+    let container_name = String::from("test_get_container_ip_succeeds");
+    let image_name = String::from("alpine:latest");
+
+    let _ = delete_container(&docker_client, &container_name).await;
+    let _ = pull_image(&docker_client, &image_name).await;
+
+    let container_conf = HpotterContainerConfig {
+        name: container_name,
+        image: image_name,
+        host_port: 54322,
+        container_port: 54322,
+        env: None,
+        network_id: None,
+        cmd: Some(vec![String::from("sleep"), String::from("2")]),
+        volumes: None,
+    };
+
+    let container_id = create_container(&docker_client, &container_conf)
+        .await
+        .unwrap();
+    assert_ne!(container_id, "");
+
+    let result = start_container(&docker_client, &container_id).await;
+    assert!(result.is_ok());
+
+    let container_ip = get_container_ip(&docker_client, &container_id)
+        .await
+        .unwrap();
+    assert_ne!(container_ip, "");
+    assert!(container_ip.contains("172.17."));
 
     let del_result = delete_container(&docker_client, &container_id).await;
     assert!(del_result.is_ok());
