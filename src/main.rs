@@ -1,7 +1,8 @@
 use anyhow;
 use bollard::Docker;
 use clap::Parser;
-use hpotter::{config, docker};
+use hpotter::{config, db, docker};
+use sqlx::PgPool;
 use std::sync::Arc;
 
 #[tokio::main]
@@ -9,7 +10,8 @@ async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     let config = config::load_config(&args.config)?;
     let docker = Arc::new(docker::connect()?);
-    run(&config, docker).await
+    let db = db::new(&config, &docker).await?;
+    run(&config, &docker, &db).await
 }
 
 #[derive(Parser, Debug)]
@@ -20,8 +22,13 @@ struct Args {
     config: String,
 }
 
-async fn run(config: &config::Config, docker_client: Arc<Docker>) -> anyhow::Result<()> {
+async fn run(
+    config: &config::Config,
+    docker_client: &Arc<Docker>,
+    db: &PgPool,
+) -> anyhow::Result<()> {
     docker::download_images(config, docker_client).await?;
+    println!("{db:#?}");
     Ok(())
     // TODO: write the database related things:
     // - ensure database exists

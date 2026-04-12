@@ -50,3 +50,4 @@ services:
 database:
   image: "postgres:17.6"
   port: 5432
+  max_connections: 20

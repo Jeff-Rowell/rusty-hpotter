@@ -55,7 +55,7 @@ async fn test_pull_image_fails() {
 async fn test_download_images_succeeds() {
     let config: Config = serde_norway::from_str(TEST_GOOD_CONFIG).unwrap();
     let docker_client = Arc::new(Docker::connect_with_socket_defaults().unwrap());
-    let result = download_images(&config, docker_client).await;
+    let result = download_images(&config, &docker_client).await;
     assert!(result.is_ok());
 }
 
@@ -63,7 +63,7 @@ async fn test_download_images_succeeds() {
 async fn test_download_images_fails() -> () {
     let config: Config = serde_norway::from_str(TEST_BAD_CONFIG).unwrap();
     let docker_client = Arc::new(Docker::connect_with_socket_defaults().unwrap());
-    let result = download_images(&config, docker_client).await;
+    let result = download_images(&config, &docker_client).await;
     assert!(result.is_err());
 }
 

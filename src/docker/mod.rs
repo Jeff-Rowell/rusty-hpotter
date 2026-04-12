@@ -149,11 +149,11 @@ async fn ensure_image(docker_client: &Docker, image: &str) -> Result<()> {
 /// async fn example() -> anyhow::Result<()> {
 ///     let config = config::load_config("config.yml")?;
 ///     let docker_client = Arc::new(docker::connect()?);
-///     docker::download_images(&config, docker_client).await?;
+///     docker::download_images(&config, &docker_client).await?;
 ///     Ok(())
 /// }
 /// ```
-pub async fn download_images(config: &config::Config, docker_client: Arc<Docker>) -> Result<()> {
+pub async fn download_images(config: &config::Config, docker_client: &Arc<Docker>) -> Result<()> {
     let mut handles = vec![];
 
     let docker_client_clone = Arc::clone(&docker_client);

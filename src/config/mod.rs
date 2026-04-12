@@ -27,6 +27,7 @@ pub struct ServiceConfig {
 pub struct DatabaseConfig {
     pub image: String,
     pub port: u16,
+    pub max_connections: u32,
 }
 
 /// Deserializes a YAML configuration for the honeypot from the given path.
