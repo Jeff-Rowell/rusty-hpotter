@@ -124,7 +124,22 @@ pub async fn pull_image(docker: &Docker, image: &str) -> Result<()> {
 ///
 /// * `docker_client`: the docker server client
 /// * `image`: the image to ensure is present
-async fn ensure_image(docker_client: &Docker, image: &str) -> Result<()> {
+///
+/// # Examples
+///
+/// ```
+/// use anyhow;
+/// use std::sync::Arc;
+/// use hpotter::docker;
+///
+/// async fn example() -> anyhow::Result<()> {
+///     let docker_client = Arc::new(docker::connect()?);
+///     let result = docker::ensure_image(&docker_client, "hello-world:latest").await;
+///     assert!(result.is_ok());
+///     Ok(())
+/// }
+/// ```
+pub async fn ensure_image(docker_client: &Docker, image: &str) -> Result<()> {
     let has_img = image_is_available(&docker_client, &image).await?;
     if !has_img {
         pull_image(&docker_client, &image).await?;
@@ -323,6 +338,7 @@ pub async fn get_network_id(docker_client: &Docker, name: &str) -> Result<String
 pub async fn create_network(docker_client: &Docker, name: &str) -> Result<String> {
     let network_req = NetworkCreateRequest {
         name: String::from(name),
+        driver: Some(String::from("bridge")),
         ..Default::default()
     };
 
@@ -466,6 +482,7 @@ pub async fn get_container_id(docker_client: &Docker, name: &str) -> Result<Stri
     Ok(containers.iter().filter_map(|c| c.id.clone()).collect())
 }
 
+#[derive(Debug, PartialEq)]
 pub struct HpotterContainerConfig {
     pub name: String,
     pub image: String,

@@ -28,6 +28,9 @@ pub struct DatabaseConfig {
     pub image: String,
     pub port: u16,
     pub max_connections: u32,
+    pub name: String,
+    pub network: String,
+    pub volume: String,
 }
 
 /// Deserializes a YAML configuration for the honeypot from the given path.
